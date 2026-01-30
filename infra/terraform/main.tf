@@ -32,7 +32,7 @@ resource "aws_security_group" "etl_sg" {
 # RDS PostgreSQL
 # -------------------------------
 resource "aws_db_instance" "etl_db" {
-  identifier        = "etl-postgres-db"
+  identifier        = "etl-postgres-db-${var.env}"
   engine            = "postgres"
   engine_version    = "14.15"
   instance_class    = "db.t3.small"
@@ -117,7 +117,7 @@ resource "aws_iam_role_policy" "lambda_s3_policy" {
   })
 }
 resource "aws_iam_policy" "lambda_secrets_policy" {
-  name = "lambda-secrets-access"
+  name = "lambda-secrets-access-${var.env}"
   policy = jsonencode({
     Version = "2012-10-17"
     Statement =[ 
