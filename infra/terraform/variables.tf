@@ -9,7 +9,7 @@ variable "region" {
 variable "db_name" {
     type =string
 }
-variable "db_user" {
+variable "db_master_user" {
     type = string
 }
 variable "db_master_password" {
