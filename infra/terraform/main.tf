@@ -1,11 +1,11 @@
 provider "aws" {
   region = var.region
 }
-# data "archive_file" "etl_lambda_zip" {
-#   type = "zip"
-#   source_dir = "${path.module}/../../lambda"
-#   output_path = "${path.module}/etl_lambda.zip"
-# }
+data "archive_file" "etl_lambda_zip" {
+  type = "zip"
+  source_dir = "${path.module}/../../lambda"
+  output_path = "${path.module}/etl_lambda.zip"
+}
 # -------------------------------
 # Security Group for RDS + Lambda
 # -------------------------------
@@ -79,10 +79,10 @@ resource "aws_lambda_function" "etl_lambda" {
   role          = aws_iam_role.lambda_role.arn
   handler       = "lambda_function.lambda_handler"
   runtime       = "python3.10"
-  filename      = "${path.module}/etl_lambda.zip"
-  source_code_hash = filebase64sha256("${path.module}/etl_lambda.zip")
-  # filename = data.archive_file.etl_lambda_zip.output_path
-  # source_code_hash = data.archive_file.etl_lambda_zip.output_base64sha256
+  # filename      = "${path.module}/etl_lambda.zip"
+  # source_code_hash = filebase64sha256("${path.module}/etl_lambda.zip")
+  filename = data.archive_file.etl_lambda_zip.output_path
+  source_code_hash = data.archive_file.etl_lambda_zip.output_base64sha256
   timeout = 300
   memory_size = 512
  
