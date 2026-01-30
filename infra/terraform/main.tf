@@ -10,7 +10,7 @@ data "archive_file" "etl_lambda_zip" {
 # Security Group for RDS + Lambda
 # -------------------------------
 resource "aws_security_group" "etl_sg" {
-  name        = "etl-sg"
+  name        = "etl-sg-${var.env}"
   description = "Allow PostgreSQL access"
  
   ingress {
@@ -52,7 +52,7 @@ resource "aws_db_instance" "etl_db" {
 # IAM Role for Lambda
 # -------------------------------
 resource "aws_iam_role" "lambda_role" {
-  name = "etl_lambda_role"
+  name = "etl_lambda_role-${var.env}"
  
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
