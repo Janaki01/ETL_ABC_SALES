@@ -32,7 +32,7 @@ resource "aws_security_group" "etl_sg" {
 # RDS PostgreSQL
 # -------------------------------
 resource "aws_db_instance" "etl_db" {
-  identifier        = "etl-postgres-db-dev01"
+  identifier        = "etl-postgres-db-${var.env}"
   engine            = "postgres"
   engine_version    = "14.15"
   instance_class    = "db.t3.small"
@@ -75,7 +75,7 @@ resource "aws_iam_role_policy_attachment" "lambda_basic" {
 # Lambda Function (Simple test)
 # -------------------------------
 resource "aws_lambda_function" "etl_lambda" {
-  function_name = "etl_automation_lambda"
+  function_name = "etl_automation_lambda-${var.env}"
   role          = aws_iam_role.lambda_role.arn
   handler       = "lambda_function.lambda_handler"
   runtime       = "python3.10"
