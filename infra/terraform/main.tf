@@ -3,8 +3,8 @@ provider "aws" {
 }
 data "archive_file" "etl_lambda_zip" {
   type = "zip"
-  source_dir = "${path.module}/../../lambda"
-  output_path = "${path.module}/etl_lambda.zip"
+  source_dir = "${path.module}/../../lambda_package"
+  output_path = "${path.module}/../../etl_lambda.zip"
 }
 # -------------------------------
 # Security Group for RDS + Lambda
@@ -72,17 +72,17 @@ resource "aws_iam_role_policy_attachment" "lambda_basic" {
 }
  
 # -------------------------------
-# Lambda Function (Simple test)
+# Lambda Function 
 # -------------------------------
 resource "aws_lambda_function" "etl_lambda" {
   function_name = "etl_automation_lambda-${var.env}"
   role          = aws_iam_role.lambda_role.arn
   handler       = "lambda_function.lambda_handler"
   runtime       = "python3.10"
-  filename      = "${path.module}/etl_lambda.zip"
+  # filename      = "${path.module}/../../etl_lambda.zip"
   # source_code_hash = filebase64sha256("${path.module}/etl_lambda.zip")
-  # filename = data.archive_file.etl_lambda_zip.output_path
-  # source_code_hash = data.archive_file.etl_lambda_zip.output_base64sha256
+  filename = data.archive_file.etl_lambda_zip.output_path
+  source_code_hash = data.archive_file.etl_lambda_zip.output_base64sha256
   timeout = 300
   memory_size = 512
  
@@ -130,5 +130,38 @@ resource "aws_iam_policy" "lambda_secrets_policy" {
     ]
   })
   
+}
+resource "aws_cloudwatch_log_group" "lambda_logs" {
+  name = "/aws/lambda/etl_automation_lambda_sales"
+  retention_in_days = 14
+}
+resource "aws_sns_topic" "lambda_failure_topic" {
+  name = "etl-lambda-failure-topic"
+}
+ 
+resource "aws_sns_topic_subscription" "email_alert" {
+  topic_arn = aws_sns_topic.lambda_failure_topic.arn
+  protocol  = "email"
+  endpoint  = "muthuluri-janaki.muthuluri-janaki@capgemini.com"  
+}
+resource "aws_cloudwatch_metric_alarm" "lambda_error_alarm" {
+  alarm_name          = "etl-lambda-error-alarm"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = 1
+  metric_name         = "Errors"
+  namespace           = "AWS/Lambda"
+  period              = 60
+  statistic           = "Sum"
+  threshold           = 0
+ 
+  dimensions = {
+    FunctionName = aws_lambda_function.etl_lambda.function_name
+  }
+ 
+  alarm_description = "Triggered when ETL Lambda fails"
+ 
+  alarm_actions = [
+    aws_sns_topic.lambda_failure_topic.arn
+  ]
 }
 

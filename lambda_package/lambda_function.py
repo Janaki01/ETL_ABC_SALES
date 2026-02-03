@@ -1,92 +1,101 @@
 import json
-import os
-import pg8000.dbapi as pg
 import boto3
-from io import StringIO
+import pg8000
+# import pandas as pd
+import io 
 import csv
-
+from datetime import datetime
+ 
+ 
+# 🔐 Get DB credentials from Secrets Manager
 def get_db_secret():
-    Client = boto3.client("secretsmanager")
-    response = Client.get_secret_value(
-        SecretsId="etl/postgres/credentials"
+    client = boto3.client("secretsmanager", region_name="ap-south-1")
+    response = client.get_secret_value(
+        SecretId="etl/postgres/credentials"
     )
-    secret = json.loads(response["SecretString"])
-    return secret
-secret = get_db_secret()
-host= secret["DB_HOST"]
-port = int(secret["DB_PORT"])
-db = secret["DB_NAME"]
-user = secret["DB_USER"]
-password = secret["DB_PASSWORD"]
-
- # Connect to PostgreSQL (RDS)
-conn = pg.connect(
-    host=host,
-    port=port,
-    database=db,
-    user=user,
-    password=password
-)
-
+    return json.loads(response["SecretString"])
+ 
+ 
 def lambda_handler(event, context):
-    cursor = conn.cursor()
-    # Read environment variables
-    # host = os.environ['DB_HOST']
-    # port = int(os.environ['DB_PORT'])
-    # db   = os.environ['DB_NAME']
-    # user = os.environ['DB_USER']
-    # password = os.environ['DB_PASSWORD']
-    # bucket = os.environ['S3_BUCKET']
+    try:
+        # 1️⃣ Fetch secret
+        secret = get_db_secret()
  
+        # 2️⃣ Connect to PostgreSQL
+        conn = pg8000.connect(
+            user=secret["db_user"],
+            password=secret["db_password"],
+            host=secret["endpoint"],
+            port=int(secret["db_port"]),
+            database=secret["database"]
+        )
  
-    # Your business query
-    query = """
-    SELECT
-    o.orderid,
-    c.customername,
-    p.productname,
-    oli.quantity,
-    oli.rate,
-    oli.amount,
-    o.totalamount,
-    o.createdon
-FROM public.ordertransaction o
-JOIN public.customer c ON o.customerid = c.customerid
-JOIN public.orderlineitems oli ON o.orderid = oli.orderid
-JOIN public.product p ON oli.productid = p.productid
-ORDER BY o.orderid;
-"""
+        cursor = conn.cursor()
  
-    cursor.execute(query)
-    rows = cursor.fetchall()
+        # 3️⃣ SQL Query
+        query = """
+        SELECT
+            o.orderid,
+            c.customername,
+            p.productname,
+            oli.quantity,
+            oli.rate,
+            oli.amount,
+            o.totalamount
+        FROM ordertransaction o
+        JOIN customer c ON o.customerid = c.customerid
+        JOIN orderlineitems oli ON o.orderid = oli.orderid
+        JOIN product p ON oli.productid = p.productid
+        ORDER BY o.orderid;
+        """
  
-    # Create CSV in memory
-    output = StringIO()
-    writer = csv.writer(output)
+        cursor.execute(query)
  
-    # Header
-    writer.writerow([
-        "orderid", "customername", "productname",
-        "quantity", "rate", "amount", "totalamount", "createdon"
-    ])
+        # 4️⃣ Fetch data
+        rows = cursor.fetchall()
+        columns = [desc[0] for desc in cursor.description]
  
-    # Data
-    for row in rows:
-        writer.writerow(row)
+        # # 5️⃣ Convert to DataFrame
+        # df = pd.DataFrame(rows, columns=columns)
+        # print(f"Total rows fetched: {len(df)}")
  
-    # Upload to S3
-    s3 = boto3.client("s3")
-    s3.put_object(
-        Bucket=bucket,
-        Key="etl_report.csv",
-        Body=output.getvalue()
-    )
+        # 6️⃣ Convert DataFrame → CSV (in memory)
+        csv_buffer = io.StringIO()
+        writer = csv.writer(csv_buffer)
+        writer.writerow(columns)
+        writer.writerows(rows)
+         
+        BUCKET_NAME = "etl-report-bucket-janaki"
+        file_name = f"sales_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+
+        # 7️⃣ Upload to S3
+        s3_client = boto3.client("s3")
+        s3_client.put_object(
+        Bucket = BUCKET_NAME,
+        Key=f"reports/{file_name}",
+        Body=csv_buffer.getvalue()
+
+        )
  
-    cursor.close()
-    conn.close()
+        # 8️⃣ Close DB
+        cursor.close()
+        conn.close()
  
-    return {
-        "status": "success",
-        "message": "ETL completed and CSV uploaded to S3",
-        "rows": len(rows)
-    }
+        return {
+            "status": "success",
+            "message": "ETL completed and CSV uploaded to S3",
+            "rows": len(rows)
+        }
+ 
+    except Exception as e:
+        print("ERROR:", str(e))
+        return {
+            "statusCode": 500,
+            "body": str(e)
+        }
+ 
+# import sys
+# print("PYTHON PATH:", sys.path)
+
+# def lambda_handler (event, context):
+#     return {"status":"ok"}
