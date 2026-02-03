@@ -24,7 +24,7 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
-          TF_VAR_db_master_password: ${{ secrets.TF_VAR_db_master_password}}
+          # TF_VAR_db_master_password: ${{ secrets.TF_VAR_db_master_password}}
  
       - name: Terraform Init
         working-directory: infra/terraform
@@ -32,9 +32,20 @@ jobs:
  
       - name: Terraform Plan
         working-directory: infra/terraform
-        run: terraform plan
+        run: terraform plan -input=false
+        env:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+          TF_VAR_db_master_password: ${{ secrets.TF_VAR_db_master_password}}
+
  
       - name: Terraform Apply
         working-directory: infra/terraform
-        run: terraform apply -auto-approve
+        run: terraform apply -auto-approve input=false
+        env:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+          TF_VAR_db_master_password: ${{ secrets.TF_VAR_db_master_password}}
  
