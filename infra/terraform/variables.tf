@@ -1,20 +1,31 @@
+variable "region" {
+  type    = string
+  default = "ap-south-1"
+}
+
 variable "env" {
+  type    = string
+  default = "sales"
+}
+
+variable "db_name" {
   type = string
 }
 
-
-variable "region" {
-    type = string
-
-}
-variable "db_name" {
-    type =string
-}
 variable "db_user" {
-    type = string
+  type = string
 }
+
 variable "db_master_password" {
-    description = "RDS master password"
-    type = string
-    sensitive = true
+  type      = string
+  sensitive = true
 }
+
+variable "s3_bucket_name" {
+  type = string
+}
+
+variable "alert_email" {
+  type = string
+}
+ 
