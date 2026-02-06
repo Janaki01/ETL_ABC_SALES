@@ -50,6 +50,6 @@ resource "aws_cloudwatch_metric_alarm" "lambda_error_alarm" {
 }
 
 resource "aws_cloudwatch_log_group" "lambda_logs" {
-  name              = "/aws/lambda/etl_automation_lambda_sales"
+  name              = "/aws/lambda/etl_automation_lambda-sales"
   retention_in_days = 14
 }
