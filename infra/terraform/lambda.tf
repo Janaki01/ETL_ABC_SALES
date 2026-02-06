@@ -42,7 +42,23 @@ resource "aws_iam_role_policy_attachment" "lambda_basic" {
     ignore_changes  = all
   }
 }
+resource "aws_iam_role_policy" "lambda_secrets_policy" {
+  name = "etl-lambda-secrets-${var.env}"
+  role = aws_iam_role.lambda_role.id
 
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect   = "Allow"
+      Action   = ["secretsmanager:GetSecretValue"]
+      Resource = "arn:aws:secretsmanager:ap-south-1:124355643919:secret:etl/postgres/credentials*"
+    }]
+  })
+  lifecycle {
+    prevent_destroy = true
+    ignore_changes  = all
+  }
+}
 
 resource "aws_iam_role_policy" "lambda_s3_policy" {
   name = "etl-lambda-s3-${var.env}"
